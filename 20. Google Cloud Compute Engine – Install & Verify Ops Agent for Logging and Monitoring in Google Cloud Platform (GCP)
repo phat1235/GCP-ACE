@@ -1,0 +1,199 @@
+**Phần 20: 🚀 Google Cloud Compute Engine – Cài đặt & Kiểm tra Ops Agent cho Logging và Monitoring trong Google Cloud Platform (GCP)**
+
+---
+
+**Ops Agent** là agent được **Google Cloud khuyến nghị sử dụng** để thực hiện **giám sát (monitoring) và ghi log (logging)** trên các máy ảo Compute Engine.
+
+Ops Agent thay thế các **Monitoring Agent và Logging Agent cũ** bằng **một agent hợp nhất duy nhất**, mang lại các lợi ích:
+
+✅ Hiệu năng tốt hơn
+✅ Cài đặt và quản lý dễ dàng
+✅ Hỗ trợ cả **Linux và Windows**
+✅ Hỗ trợ sẵn cho **logs, metrics và các ứng dụng bên thứ ba**
+
+Trong bài hướng dẫn này, chúng ta sẽ thực hiện từng bước để:
+
+* Cài đặt **Ops Agent**
+* Kiểm tra việc tích hợp **monitoring và logging**
+* Xem **metrics và logs** trong Cloud Monitoring và Cloud Logging
+
+---
+
+# Bước 01: Giới thiệu
+
+Chúng ta sẽ thử **hai phương pháp cài đặt**:
+
+**Phương pháp 1:** Cài đặt Ops Agent **khi tạo VM** (qua Console)
+
+**Phương pháp 2:** Cài đặt Ops Agent **thủ công trên VM đã tồn tại** (CLI + SSH)
+
+---
+
+# Bước 02: Cài đặt Ops Agent
+
+## 🔹 Bước 02-01: Cài đặt Ops Agent bằng Google Cloud Console
+
+Thực hiện các bước sau:
+
+Vào **Compute Engine → VM Instances → CREATE INSTANCE**
+
+Thiết lập:
+
+* **Name:** `demo1-opsagent`
+
+Trong mục **Observability → Ops Agent**
+
+* Chọn ✅ **Install Ops Agent for Monitoring and Logging**
+
+Sau đó nhấn **CREATE**
+
+Ops Agent sẽ **tự động được cài đặt trên VM**.
+
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Ffx7bq0cqgjzypccql4hp.png)
+---
+
+VM → **Observability**
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fkoq7gcmz72yxv1q9g6di.png)
+---
+
+## 🔹 Bước 02-02: Cài đặt Ops Agent thủ công
+
+Tạo một **VM instance bằng CLI**:
+
+```bash
+# Tạo VM Instance
+gcloud compute instances create demo2-opsagent \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default \
+  --tags=http-server \
+  --metadata-from-file=startup-script=webserver-install.sh 
+```
+
+---
+
+## 🔍 Kiểm tra Metrics của VM
+
+Vào:
+
+**Compute Engine → VM Instances → demo2-opsagent → tab OBSERVABILITY**
+
+Nhấn vào các mục:
+
+* CPU
+* PROCESS
+* MEMORY
+
+Nếu Ops Agent chưa được cài đặt, bạn sẽ thấy thông báo:
+
+**"Requires Ops Agent"**
+
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Ff2fwrw6hq2vbgawr2l95.png)
+
+---
+
+## SSH vào VM và cài đặt Ops Agent
+
+```bash
+# Kết nối vào VM
+gcloud compute ssh --zone "us-central1-a" "demo2-opsagent" --project "gcpdemos"
+
+# Tải script cài đặt Ops Agent
+curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+
+# Cài đặt Ops Agent
+sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+
+# Kiểm tra agent đã được cài đặt chưa
+sudo apt list --installed | grep google-cloud-ops-agent
+
+# Kiểm tra trạng thái agent
+sudo systemctl status google-cloud-ops-agent"*"
+
+# Khởi động lại agent (tùy chọn)
+sudo service google-cloud-ops-agent restart
+```
+
+---
+
+# Bước 03: Xem các Monitoring Metrics của VM
+
+Vào:
+
+**Compute Engine → VM Instances → demo2-opsagent**
+
+Chọn **tab Observability**
+
+Kiểm tra các metrics như:
+
+* CPU
+* Processes
+* Memory
+* Disk capacity
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fa4s2eniugosaztf8vx5r.png)
+---
+
+# Bước 05: Kiểm tra công cụ Cloud Monitoring
+
+Vào:
+
+**Monitoring → Overview**
+
+Nhấn **VIEW GCE DASHBOARD → VMs Dashboard**
+
+Kiểm tra:
+
+**Agent Status → Ops Agent**
+
+---
+
+# Bước 06: Xem tab Metrics và Logs
+
+Vào:
+
+**Monitoring → Overview → GCE Dashboard → VMs Dashboard**
+
+Khám phá:
+
+**Metrics Tab**
+
+* CPU
+* Memory
+* Disk
+* Processes
+
+**Logs Tab**
+
+* Các **system logs** được thu thập thông qua Ops Agent
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fjr92ll33kpywkfewc8ue.png)
+---
+
+# Bước 07: Kiểm tra Logs trong Logs Explorer
+
+Vào:
+
+**Logging → Logs Explorer**
+
+Chọn:
+
+**Resource Name:** `demo2-opsagent`
+
+Kiểm tra:
+
+* **System logs**
+* **Application logs**
+
+![](https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fyegbwkenq2nfeftgmjkj.png)
+---
+
+# Bước 08: Dọn dẹp tài nguyên (Cleanup)
+
+Xóa các VM đã tạo trong bài demo:
+
+```bash
+gcloud compute instances delete demo1-opsagent demo2-opsagent --zone=us-central1-a
+```
+
+---
+
+✅ Hoàn thành! Bạn đã **cài đặt, kiểm tra và khám phá thành công Google Cloud Ops Agent** cho các VM trong Compute Engine.
